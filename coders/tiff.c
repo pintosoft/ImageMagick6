@@ -2318,7 +2318,7 @@ ModuleExport size_t RegisterTIFFImage(void)
 #endif
   entry->endian_support=MagickTrue;
   entry->seekable_stream=MagickTrue;
-  entry->stealth=MagickTrue;
+  //entry->stealth=MagickTrue;
   entry->description=ConstantString(TIFFDescription);
   if (*version != '\0')
     entry->version=ConstantString(version);
