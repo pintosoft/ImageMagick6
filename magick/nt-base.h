@@ -110,7 +110,8 @@ extern "C" {
 #if defined(MAGICKCORE_WINDOWS_SUPPORT) && \
   !(defined(_MSC_VER) && (_MSC_VER < 1400)) && \
   !(defined(__MSVCRT_VERSION__) && (__MSVCRT_VERSION__ < 0x800))
-#  define fstat  _fstati64
+int __cdecl __fstat64(int fd, struct _stat64* buffer);
+#  define fstat __fstat64
 #else
 #  define fstat  _fstat
 #endif

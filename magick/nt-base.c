@@ -2638,4 +2638,64 @@ MagickPrivate void NTWindowsTerminus(void)
   UnlockSemaphoreInfo(winsock_semaphore);
   DestroySemaphoreInfo(&winsock_semaphore);
 }
+
+// _fstat64 Windows XP bug fix
+int __cdecl __fstat64(int fd, struct _stat64* buffer)
+{
+  HANDLE hFile;
+  DWORD type;
+  BY_HANDLE_FILE_INFORMATION fi;
+
+  if (buffer == NULL)
+  {
+    _doserrno = 0L;
+    errno = EINVAL;
+    _invalid_parameter_noinfo();
+    return -1;
+  }
+
+  hFile = (HANDLE)_get_osfhandle(fd);
+  if (hFile == INVALID_HANDLE_VALUE)
+  {
+    _doserrno = 0L;
+    errno = EBADF;
+    _invalid_parameter_noinfo();
+    return -1;
+  }
+
+  memset(buffer, 0, sizeof(struct _stat64));
+  type = GetFileType(hFile);
+  switch (type)
+  {
+  case FILE_TYPE_CHAR:
+    buffer->st_dev = buffer->st_rdev = fd;
+    buffer->st_mode = _S_IFCHR;
+    buffer->st_nlink = 1;
+    break;
+  case FILE_TYPE_PIPE:
+    buffer->st_dev = buffer->st_rdev = fd;
+    buffer->st_mode = _S_IFIFO;
+    buffer->st_nlink = 1;
+    break;
+  default:
+    memset(&fi, 0, sizeof(fi));
+    if (!GetFileInformationByHandle(hFile, &fi))
+    {
+      _doserrno = 0L;
+      errno = EBADF;
+      _invalid_parameter_noinfo();
+      return -1;
+    }
+    buffer->st_mode = _S_IFREG | ((_S_IREAD >> 6) | (_S_IREAD >> 3) | _S_IREAD);
+    if ((fi.dwFileAttributes & FILE_ATTRIBUTE_READONLY) == 0)
+      buffer->st_mode |= ((_S_IWRITE >> 6) | (_S_IWRITE >> 3) | _S_IWRITE);
+    buffer->st_size = ((__int64)fi.nFileSizeHigh << 32) + fi.nFileSizeLow;
+    buffer->st_atime = ((LARGE_INTEGER*)&fi.ftLastAccessTime)->QuadPart / 10000000LL - 11644473600LL;
+    buffer->st_mtime = ((LARGE_INTEGER*)&fi.ftLastWriteTime)->QuadPart / 10000000LL - 11644473600LL;
+    buffer->st_ctime = ((LARGE_INTEGER*)&fi.ftCreationTime)->QuadPart / 10000000LL - 11644473600LL;
+    buffer->st_nlink = (short)fi.nNumberOfLinks;
+    break;
+  }
+  return 0;
+}
 #endif
