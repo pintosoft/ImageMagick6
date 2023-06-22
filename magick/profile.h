@@ -60,7 +60,7 @@ extern MagickExport MagickBooleanType
   ProfileImage(Image *,const char *,const void *,const size_t,
     const MagickBooleanType),
   SetImageProfile(Image *,const char *,const StringInfo *),
-  SyncImageProfiles(Image *);
+  SyncImageProfiles(const ImageInfo*,Image *);
 
 extern MagickExport StringInfo
   *RemoveImageProfile(Image *,const char *);

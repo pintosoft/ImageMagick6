@@ -1953,7 +1953,7 @@ static void WriteProfileShort(const EndianType endian,
   (void) memcpy(p,buffer,2);
 }
 
-static MagickBooleanType SyncExifProfile(const Image *image,unsigned char *exif,
+static MagickBooleanType SyncExifProfile(const ImageInfo* image_info,const Image *image,unsigned char *exif,
   size_t length)
 {
 #define MaxDirectoryStack  16
@@ -2067,7 +2067,7 @@ static MagickBooleanType SyncExifProfile(const Image *image,unsigned char *exif,
       size_t
         number_bytes;
 
-      ssize_t
+      size_t
         format,
         tag_value;
 
@@ -2077,8 +2077,8 @@ static MagickBooleanType SyncExifProfile(const Image *image,unsigned char *exif,
       if (GetValueFromSplayTree(exif_resources,q) == q)
         break;
       (void) AddValueToSplayTree(exif_resources,q,q);
-      tag_value=(ssize_t) ReadProfileShort(endian,q);
-      format=(ssize_t) ReadProfileShort(endian,q+2);
+      tag_value=(size_t)(unsigned short) ReadProfileShort(endian,q);
+      format=(size_t)(unsigned short) ReadProfileShort(endian,q+2);
       if ((format < 0) || ((format-1) >= EXIF_NUM_FORMATS))
         break;
       components=(int) ReadProfileLong(endian,q+4);
@@ -2138,6 +2138,60 @@ static MagickBooleanType SyncExifProfile(const Image *image,unsigned char *exif,
           (void) WriteProfileShort(endian,(unsigned short) (image->units+1),p);
           break;
         }
+        case 0x5029:	// Thumbnail orientation
+        {
+          const char
+            * option;
+
+          option = GetImageOption(image_info, "exif:thumbnail");
+          if (LocaleCompare(option, "replaced") == 0)
+          {
+            if (number_bytes == 4)
+            {
+              (void)WriteProfileLong(endian, (size_t)image->orientation, p);
+              break;
+            }
+            (void)WriteProfileShort(endian, (unsigned short)image->orientation, p);
+          }
+          break;
+        }
+        case 0x202:	// Thumbnail length
+        {
+          if (level == 2)
+          {
+            const char
+              * option;
+
+            option = GetImageOption(image_info, "exif:thumbnail");
+            if (LocaleCompare(option, "replaced") == 0)
+            {
+              size_t
+                thumbnail_length;
+
+              option = GetImageOption(image_info, "exif:thumbnail:length");
+              if (option != NULL)
+                thumbnail_length = _atoi64(option);
+              else
+                thumbnail_length = 0;
+              if (number_bytes == 4)
+              {
+                (void)WriteProfileLong(endian, thumbnail_length, p);
+                break;
+              }
+              (void)WriteProfileShort(endian, (unsigned short)thumbnail_length, p);
+            }
+            else if (LocaleCompare(option, "removed") == 0)
+            {
+              if (number_bytes == 4)
+              {
+                (void)WriteProfileLong(endian, (size_t)0, p);
+                break;
+              }
+              (void)WriteProfileShort(endian, (unsigned short)0, p);
+            }
+          }
+          break;
+        }
         default:
           break;
       }
@@ -2173,7 +2227,7 @@ static MagickBooleanType SyncExifProfile(const Image *image,unsigned char *exif,
   return(MagickTrue);
 }
 
-static MagickBooleanType Sync8BimProfile(const Image *image,
+static MagickBooleanType Sync8BimProfile(const ImageInfo* image_info,const Image *image,
   const StringInfo *profile)
 {
   size_t
@@ -2231,14 +2285,14 @@ static MagickBooleanType Sync8BimProfile(const Image *image,
         WriteProfileShort(MSBEndian,(unsigned short) image->units,p+12);
       }
     if (id == 0x0422)
-      (void) SyncExifProfile(image,p,count);
+      (void) SyncExifProfile(image_info,image,p,count);
     p+=count;
     length-=count;
   }
   return(MagickTrue);
 }
 
-MagickExport MagickBooleanType SyncImageProfiles(Image *image)
+MagickExport MagickBooleanType SyncImageProfiles(const ImageInfo* image_info,Image *image)
 {
   MagickBooleanType
     status;
@@ -2249,11 +2303,11 @@ MagickExport MagickBooleanType SyncImageProfiles(Image *image)
   status=MagickTrue;
   profile=(StringInfo *) GetImageProfile(image,"8BIM");
   if (profile != (StringInfo *) NULL)
-    if (Sync8BimProfile(image,profile) == MagickFalse)
+    if (Sync8BimProfile(image_info,image,profile) == MagickFalse)
       status=MagickFalse;
   profile=(StringInfo *) GetImageProfile(image,"EXIF");
   if (profile != (StringInfo *) NULL)
-    if (SyncExifProfile(image,GetStringInfoDatum(profile),
+    if (SyncExifProfile(image_info,image,GetStringInfoDatum(profile),
       GetStringInfoLength(profile)) == MagickFalse)
       status=MagickFalse;
   return(status);
