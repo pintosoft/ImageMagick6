@@ -1597,6 +1597,12 @@ namespace Magick
     // Test for ImageMagick error and throw exception if error
     void throwImageException(void) const;
 
+    // Move to a different image frame
+    bool goPreviousImage();
+    bool goNextImage();
+    void goFirstImage();
+    void goLastImage();
+
   private:
 
     void read(MagickCore::Image *image,

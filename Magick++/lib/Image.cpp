@@ -5084,7 +5084,7 @@ void Magick::Image::modifyImage(void)
   }
 
   GetPPException;
-  replaceImage(CloneImage(constImage(),0,0,MagickTrue,exceptionInfo));
+  replaceImage(CloneImageList(constImage(), exceptionInfo));
   ThrowImageException;
   return;
 }
@@ -5128,19 +5128,6 @@ void Magick::Image::throwImageException(void) const
 void Magick::Image::read(MagickCore::Image *image,
   MagickCore::ExceptionInfo *exceptionInfo)
 {
-  // Ensure that multiple image frames were not read.
-  if (image != (MagickCore::Image *) NULL &&
-      image->next != (MagickCore::Image *) NULL)
-    {
-      MagickCore::Image
-        *next;
-
-      // Destroy any extra image frames
-      next=image->next;
-      image->next=(MagickCore::Image *) NULL;
-      next->previous=(MagickCore::Image *) NULL;
-      DestroyImageList(next);
-    }
   replaceImage(image);
   if (exceptionInfo->severity == MagickCore::UndefinedException &&
       image == (MagickCore::Image *) NULL)
@@ -5203,4 +5190,36 @@ void Magick::Image::floodFill(const ssize_t x_,const ssize_t y_,
   options()->fillColor(fillColor);
   options()->fillPattern(fillPattern);
   throwImageException();
+}
+
+bool Magick::Image::goPreviousImage()
+{
+	if (_imgRef->image()->previous)
+	{
+		_imgRef->_image = _imgRef->image()->previous;
+		return true;
+	}
+	return false;
+}
+
+bool Magick::Image::goNextImage()
+{
+	if (_imgRef->image()->next)
+	{
+		_imgRef->_image = _imgRef->image()->next;
+		return true;
+	}
+	return false;
+}
+
+void Magick::Image::goFirstImage()
+{
+	while (_imgRef->image()->previous)
+		_imgRef->_image = _imgRef->image()->previous;
+}
+
+void Magick::Image::goLastImage()
+{
+	while (_imgRef->image()->next)
+		_imgRef->_image = _imgRef->image()->next;
 }
