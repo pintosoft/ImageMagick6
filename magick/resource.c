@@ -531,6 +531,9 @@ MagickExport MagickBooleanType GetPathTemplate(char *path)
   struct stat
     attributes;
 
+  size_t
+    len;
+
   (void) FormatLocaleString(path,MaxTextExtent,"magick-" MagickPathTemplate);
   exception=AcquireExceptionInfo();
   directory=(char *) GetImageRegistry(StringRegistryType,"temporary-path",
@@ -564,10 +567,16 @@ MagickExport MagickBooleanType GetPathTemplate(char *path)
       (void) CloneString(&directory,value);
       value=DestroyString(value);
     }
-  if (strlen(directory) > (MaxTextExtent-25))
+  len = strlen(directory);
+  if ((len == 0) || (len > (MaxTextExtent-25)))
     {
       directory=DestroyString(directory);
       return(MagickFalse);
+    }
+  if (directory[len - 1] == *DirectorySeparator)
+    {
+      len--;
+      directory[len] =  0;
     }
   status=GetPathAttributes(directory,&attributes);
   if ((status == MagickFalse) || !S_ISDIR(attributes.st_mode))
@@ -575,12 +584,8 @@ MagickExport MagickBooleanType GetPathTemplate(char *path)
       directory=DestroyString(directory);
       return(MagickFalse);
     }
-  if (directory[strlen(directory)-1] == *DirectorySeparator)
-    (void) FormatLocaleString(path,MaxTextExtent,"%smagick-" MagickPathTemplate,
-      directory);
-  else
-    (void) FormatLocaleString(path,MaxTextExtent,"%s%smagick-"
-      MagickPathTemplate,directory,DirectorySeparator);
+  (void) FormatLocaleString(path,MaxTextExtent,"%s%smagick-"
+    MagickPathTemplate,directory,DirectorySeparator);
   directory=DestroyString(directory);
 #if defined(MAGICKCORE_WINDOWS_SUPPORT)
   {
