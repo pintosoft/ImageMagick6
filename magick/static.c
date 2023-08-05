@@ -218,7 +218,7 @@ static struct
   { "UYVY", MagickFalse, RegisterUYVYImage, UnregisterUYVYImage },
   { "VICAR", MagickFalse, RegisterVICARImage, UnregisterVICARImage },
   { "VID", MagickFalse, RegisterVIDImage, UnregisterVIDImage },
-  { "VIDEO", MagickFalse, RegisterVIDEOImage, UnregisterVIDEOImage },
+  //{ "VIDEO", MagickFalse, RegisterVIDEOImage, UnregisterVIDEOImage },
   { "VIFF", MagickFalse, RegisterVIFFImage, UnregisterVIFFImage },
   { "VIPS", MagickFalse, RegisterVIPSImage, UnregisterVIPSImage },
   { "WBMP", MagickFalse, RegisterWBMPImage, UnregisterWBMPImage },
